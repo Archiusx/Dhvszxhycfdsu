@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SICP - Societal Innovation Collaboration Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --green:#1e7e34; --green-dark:#166129; --green-light:#e8f5e9;
+    --blue:#2563eb; --blue-light:#eaf0fe;
+    --orange:#f5820a; --orange-light:#fef1e2;
+    --purple:#7c3aed; --purple-light:#f1ebfc;
+    --red:#e11d48; --red-light:#fde8ec;
+    --cyan:#06b6d4; --cyan-light:#e5fbff;
+    --text:#1f2937; --text-soft:#6b7280;
+    --border:#e7e9ee; --bg:#f6f7fa; --card:#ffffff; --radius:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Poppins',sans-serif; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased;}
+  a{text-decoration:none; color:inherit;} img{max-width:100%; display:block;}
+  button, select{font-family:inherit;}
+  ul{list-style:none;}
+
+  .app{display:flex; min-height:100vh; width:100%;}
+
+  /* SIDEBAR */
+  .sidebar{width:250px; flex-shrink:0; background:#fff; border-right:1px solid var(--border);
+    display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto; z-index:50; transition:transform .25s ease;}
+  .sidebar-header{display:flex; align-items:center; gap:10px; padding:18px 16px; border-bottom:1px solid var(--border);}
+  .emblem{width:38px;height:38px;border-radius:50%; background:radial-gradient(circle,#fff 55%,#0b3d91 56%); border:2px solid #0b3d91;
+    display:flex;align-items:center;justify-content:center; font-size:10px;font-weight:700;color:#0b3d91; flex-shrink:0;}
+  .brand-title{font-size:15px;font-weight:700;color:#1a1a1a; line-height:1.15;}
+  .brand-sub{font-size:9.5px;letter-spacing:.4px;font-weight:600;color:var(--text-soft); text-transform:uppercase;}
+
+  .role-switcher{margin:12px 12px 4px; padding:10px 12px; border:1.5px solid var(--green); border-radius:10px; background:var(--green-light);}
+  .role-switcher label{font-size:10px; font-weight:700; color:var(--green-dark); letter-spacing:.4px; text-transform:uppercase; display:block; margin-bottom:5px;}
+  .role-switcher select{width:100%; border:1px solid #cfe8d2; background:#fff; border-radius:8px; padding:7px 8px; font-size:12.5px; font-weight:600; color:var(--text); cursor:pointer;}
+
+  .nav-scroll{padding:8px 10px 6px; flex:1;}
+  .nav-group-label{font-size:10px; font-weight:700; color:#a3aab6; letter-spacing:.6px; text-transform:uppercase; padding:12px 12px 6px;}
+  .nav-item{display:flex;align-items:center;gap:12px; padding:10px 12px;border-radius:10px; font-size:13px;font-weight:500;color:#3f4654; margin-bottom:2px;cursor:pointer;}
+  .nav-item i{width:18px;text-align:center;font-size:14px;color:#6b7280;}
+  .nav-item:hover{background:#f2f4f7;}
+  .nav-item.active{background:var(--green-light); color:var(--green-dark); font-weight:600;}
+  .nav-item.active i{color:var(--green-dark);}
+
+  .sidebar-footer{padding:12px; border-top:1px solid var(--border);}
+  .btn-submit{background:var(--green); color:#fff; border:none; border-radius:10px; width:100%; padding:11px; font-weight:600; font-size:13px;
+    display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;}
+  .copyright{font-size:10px; color:#9aa1ac; text-align:center; margin-top:10px; line-height:1.5;}
+
+  /* MAIN */
+  .main{flex:1; min-width:0; display:flex; flex-direction:column;}
+  .topbar{background:#fff; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; padding:12px 24px; position:sticky; top:0; z-index:40;}
+  .menu-btn{display:none; background:none; border:none; font-size:20px; color:#333; cursor:pointer;}
+  .search-box{flex:1; max-width:480px; display:flex; align-items:center; gap:10px; background:#f3f4f6; border-radius:10px; padding:9px 14px; color:#8a92a1; font-size:13px;}
+  .topbar-right{display:flex; align-items:center; gap:16px; margin-left:auto;}
+  .lang-select{display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:500; color:#3f4654; cursor:pointer;}
+  .icon-btn{position:relative; font-size:16px; color:#4b5563; cursor:pointer;}
+  .badge{position:absolute; top:-7px; right:-9px; background:var(--red); color:#fff; font-size:9px; font-weight:700; border-radius:50%; width:15px; height:15px; display:flex; align-items:center; justify-content:center;}
+  .user-chip{display:flex; align-items:center; gap:9px; cursor:pointer;}
+  .user-chip img{width:34px;height:34px;border-radius:50%; object-fit:cover; border:2px solid #fff; outline:1px solid var(--border);}
+  .u-name{font-size:12.5px; font-weight:600; line-height:1.3;}
+  .u-role{font-size:10.5px; color:var(--text-soft); display:flex; align-items:center; gap:4px;}
+  .u-role .dot{width:6px;height:6px;border-radius:50%; background:#22c55e; display:inline-block;}
+
+  .content{padding:20px 24px 40px;}
+  .page-title{font-size:19px; font-weight:700; margin-bottom:3px;}
+  .page-sub{font-size:12.5px; color:var(--text-soft); margin-bottom:18px;}
+
+  .role-banner{display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--border); border-left:4px solid var(--green);
+    border-radius:12px; padding:12px 16px; margin-bottom:18px; font-size:12.5px; color:#3f4654;}
+  .role-banner b{color:var(--green-dark);}
+
+  /* STAT CARDS */
+  .stats-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px; margin-bottom:20px;}
+  .stat-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; display:flex; flex-direction:column; gap:6px;}
+  .stat-top{display:flex; align-items:center; justify-content:space-between;}
+  .stat-label{font-size:12px; font-weight:600; color:var(--text-soft);}
+  .stat-icon{width:36px;height:36px;border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;}
+  .stat-value{font-size:23px; font-weight:700; letter-spacing:-.3px;}
+  .stat-delta{font-size:11px; font-weight:500; color:#8a92a1;}
+  .stat-delta.up{color:#16a34a;}
+  .ic-green{background:var(--green-light); color:var(--green);}
+  .ic-blue{background:var(--blue-light); color:var(--blue);}
+  .ic-orange{background:var(--orange-light); color:var(--orange);}
+  .ic-purple{background:var(--purple-light); color:var(--purple);}
+  .ic-heart{background:var(--red-light); color:var(--red);}
+  .ic-cyan{background:var(--cyan-light); color:var(--cyan);}
+
+  .panel{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; margin-bottom:18px;}
+  .panel-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;}
+  .panel-head h3{font-size:14.5px; font-weight:600;}
+  .panel-head a, .panel-head .link-btn{font-size:12px; font-weight:600; color:var(--green); cursor:pointer; background:none; border:none;}
+
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+
+  /* TABLE */
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  th{text-align:left; padding:10px 12px; color:var(--text-soft); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid var(--border);}
+  td{padding:12px; border-bottom:1px solid #f1f2f4; vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .tbl-wrap{overflow-x:auto;}
+  .chip{display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; padding:4px 10px; border-radius:20px;}
+  .chip-high{background:var(--red-light); color:var(--red);}
+  .chip-med{background:var(--orange-light); color:var(--orange);}
+  .chip-low{background:var(--green-light); color:var(--green);}
+  .chip-progress{background:var(--blue-light); color:var(--blue);}
+  .chip-review{background:var(--orange-light); color:var(--orange);}
+  .chip-done{background:var(--green-light); color:var(--green);}
+  .chip-assigned{background:var(--purple-light); color:var(--purple);}
+  .row-title{font-weight:600; font-size:12.5px;}
+  .row-sub{font-size:11px; color:var(--text-soft);}
+  .avatar-stack{display:flex;}
+  .avatar-stack img{width:24px;height:24px;border-radius:50%; border:2px solid #fff; margin-left:-8px; object-fit:cover;}
+  .avatar-stack img:first-child{margin-left:0;}
+
+  .btn-sm{border:1px solid var(--border); background:#fff; padding:6px 12px; border-radius:8px; font-size:11.5px; font-weight:600; color:#3f4654; cursor:pointer;}
+  .btn-sm.primary{background:var(--green); color:#fff; border-color:var(--green);}
+  .action-row{display:flex; gap:8px;}
+
+  /* FORM */
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .field{margin-bottom:14px;}
+  .field.full{grid-column:1/-1;}
+  .field label{display:block; font-size:12px; font-weight:600; color:#3f4654; margin-bottom:6px;}
+  .field input, .field select, .field textarea{
+    width:100%; border:1px solid var(--border); border-radius:9px; padding:10px 12px; font-size:12.5px; font-family:inherit; color:var(--text); background:#fafbfc;
+  }
+  .field textarea{resize:vertical; min-height:90px;}
+  .upload-box{border:1.5px dashed #c9d2c9; border-radius:10px; padding:22px; text-align:center; color:var(--text-soft); font-size:12px; background:#fafcfa;}
+  .upload-box i{font-size:22px; color:var(--green); margin-bottom:8px; display:block;}
+
+  /* KANBAN */
+  .kanban{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+  .kanban-col{background:#fafbfc; border:1px solid var(--border); border-radius:12px; padding:12px;}
+  .kanban-col h4{font-size:12px; font-weight:700; margin-bottom:10px; display:flex; justify-content:space-between; color:#3f4654;}
+  .kanban-col h4 span{background:#e5e7eb; border-radius:8px; padding:1px 8px; font-size:10.5px;}
+  .kcard{background:#fff; border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:10px; font-size:11.5px;}
+  .kcard b{display:block; font-size:12px; margin-bottom:4px;}
+  .kcard .row-sub{margin-bottom:6px;}
+
+  /* PROGRESS */
+  .progress-bar{height:7px; background:#eef0f3; border-radius:6px; overflow:hidden; margin-top:6px;}
+  .progress-bar > div{height:100%; background:var(--green); border-radius:6px;}
+
+  .donut-wrap{display:flex; align-items:center; gap:14px;}
+  .donut{position:relative; width:100px; height:100px; flex-shrink:0;}
+  .donut svg{transform:rotate(-90deg);}
+  .donut-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .donut-center b{font-size:17px; font-weight:700;}
+  .donut-center span{font-size:9.5px; color:var(--text-soft);}
+  .legend-list{font-size:11px; flex:1;}
+  .legend-list li{display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; color:#3f4654;}
+  .legend-list li .lbl{display:flex; align-items:center; gap:6px;}
+  .legend-list li i{width:8px;height:8px;border-radius:50%; flex-shrink:0;}
+
+  .page-section{display:none;}
+  .page-section.active{display:block;}
+  .role-only{display:none;}
+
+  .overlay{display:none;}
+  .empty-note{font-size:12px; color:var(--text-soft); text-align:center; padding:20px 0;}
+
+  /* HERO */
+  .hero-row{display:grid; grid-template-columns:1.5fr 1fr; gap:16px; margin-bottom:20px;}
+  .hero-card{
+    background:
+      linear-gradient(105deg, rgba(10,30,20,.88) 0%, rgba(10,40,25,.72) 38%, rgba(10,40,25,.28) 62%, rgba(10,40,25,.05) 100%),
+      url('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200&q=80') center/cover no-repeat;
+    border:1px solid var(--border); border-radius:var(--radius);
+    padding:30px 32px; position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:center; min-height:250px;
+    box-shadow:0 10px 30px -12px rgba(10,40,25,.35);
+  }
+  .hero-eyebrow{display:inline-flex; align-items:center; gap:7px; background:rgba(255,255,255,.14); backdrop-filter:blur(4px);
+    border:1px solid rgba(255,255,255,.28); color:#fff; font-size:10.5px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+    padding:5px 12px; border-radius:20px; width:fit-content; margin-bottom:14px;}
+  .hero-eyebrow i{font-size:10px; color:#ffd166;}
+  .hero-card h1{font-size:26px; font-weight:700; line-height:1.32; margin-bottom:10px; max-width:64%; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.25);}
+  .hero-card h1 span{color:#7be495;}
+  .hero-card p{font-size:12.5px; color:rgba(255,255,255,.88); max-width:54%; line-height:1.6; margin-bottom:18px;}
+  .hero-img{display:none;}
+  .hero-btn-row{display:flex; gap:10px; flex-wrap:wrap;}
+  .hero-btn{background:var(--green); color:#fff; border:none; border-radius:9px; padding:10px 18px; font-weight:600; font-size:12.5px; cursor:pointer; width:fit-content;
+    box-shadow:0 6px 16px -4px rgba(30,126,52,.55);}
+  .hero-btn-ghost{background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.4); border-radius:9px; padding:10px 18px;
+    font-weight:600; font-size:12.5px; cursor:pointer; width:fit-content; backdrop-filter:blur(4px);}
+  @media (max-width:640px){ .hero-card h1{font-size:21px;} }
+
+  .map-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px;}
+  .map-tooltip{position:relative; top:0; background:#fff; border:1px solid var(--border); border-radius:10px; padding:10px 14px; box-shadow:0 8px 20px rgba(0,0,0,.06); font-size:11px; max-width:170px; margin:-40px 0 0 auto;}
+  .map-tooltip b{font-size:12px; display:block; margin-bottom:4px; color:var(--green-dark);}
+  .map-tooltip .mtline{display:flex; justify-content:space-between; color:#5c6675; margin-bottom:2px;}
+
+  /* TRENDING CARDS */
+  .trend-scroll{display:flex; gap:14px; overflow-x:auto; padding-bottom:6px;}
+  .trend-card{min-width:200px; background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; flex-shrink:0;}
+  .trend-card .thumb{height:95px; position:relative; overflow:hidden;}
+  .trend-card .thumb img{width:100%; height:100%; object-fit:cover;}
+  .cat-tag{position:absolute; top:8px; left:8px; font-size:9.5px; font-weight:600; padding:3px 8px; border-radius:6px; color:#fff;}
+  .trend-body{padding:11px 12px 13px;}
+  .trend-body h4{font-size:12px; font-weight:600; margin-bottom:6px; line-height:1.3;}
+  .trend-loc{font-size:10px; color:var(--text-soft); display:flex; align-items:center; gap:5px; margin-bottom:6px;}
+  .supp{font-size:10px; color:var(--text-soft); display:flex; align-items:center; gap:5px;}
+
+  /* PROFILE / OPPORTUNITY CARDS WITH IMAGES */
+  .card-media{background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden;}
+  .card-media img{width:100%; height:110px; object-fit:cover;}
+  .card-media .cm-body{padding:14px;}
+  .card-media h4{font-size:13px; font-weight:600; margin-bottom:4px;}
+  .card-media .row-sub{margin-bottom:8px;}
+
+  .quick-access{background:var(--green-light); border-radius:var(--radius); padding:16px 22px; display:flex; align-items:center; gap:28px; flex-wrap:wrap; margin-bottom:20px;}
+  .qa-label{font-size:13px; font-weight:700; color:var(--green-dark); flex-shrink:0;}
+  .qa-item{display:flex; align-items:center; gap:9px; cursor:pointer;}
+  .qa-item .qa-ic{width:32px;height:32px;border-radius:9px; background:#fff; display:flex; align-items:center; justify-content:center; color:var(--green); font-size:13px;}
+  .qa-item div b{display:block; font-size:11.5px; font-weight:600; color:#1f2937;}
+  .qa-item div span{font-size:10px; color:var(--text-soft);}
+
+  @media (max-width:1150px){ .hero-row{grid-template-columns:1fr;} }
+  @media (max-width:860px){ .hero-card h1, .hero-card p{max-width:100%;} .hero-img{display:none;} }
+
+  @media (max-width:1150px){
+    .grid-2, .grid-3{grid-template-columns:1fr;}
+    .kanban{grid-template-columns:repeat(2,1fr);}
+  }
+  @media (max-width:860px){
+    .menu-btn{display:block;}
+    .sidebar{position:fixed; left:0; top:0; transform:translateX(-100%); box-shadow:0 0 40px rgba(0,0,0,.2);}
+    .sidebar.open{transform:translateX(0);}
+    .overlay.show{display:block; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:45;}
+    .search-box{display:none;}
+    .stats-row{grid-template-columns:repeat(2,1fr);}
+    .content{padding:14px;}
+    .form-grid{grid-template-columns:1fr;}
+    .kanban{grid-template-columns:1fr;}
+    .u-name, .u-role{display:none;}
+    .topbar{padding:10px 14px;}
+  }
+  @media (max-width:480px){
+    .stats-row{grid-template-columns:1fr 1fr;}
+    .lang-select span{display:none;}
+  }
+
+  /* LOGO */
+  .logo-img{height:36px;width:auto;max-width:160px;object-fit:contain;flex-shrink:0;}
+  .lp-hero-emblem{height:54px;width:auto;object-fit:contain;margin-bottom:22px;filter:drop-shadow(0 4px 14px rgba(0,0,0,.25));}
+
+  /* ===== LANDING PAGE ===== */
+  #landingPage{min-height:100vh; display:flex; flex-direction:column;}
+  .lp-nav{position:sticky; top:0; z-index:60; background:rgba(255,255,255,.9); backdrop-filter:blur(8px); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; padding:14px 6vw;}
+  .lp-brand{display:flex; align-items:center; gap:10px;}
+  .lp-brand-title{font-size:14.5px; font-weight:700; line-height:1.15;}
+  .lp-brand-sub{font-size:9.5px; letter-spacing:.4px; font-weight:600; color:var(--text-soft); text-transform:uppercase;}
+  .lp-nav-links{display:flex; align-items:center; gap:26px;}
+  .lp-nav-links a{font-size:13px; font-weight:500; color:#3f4654; cursor:pointer;}
+  .lp-cta{background:var(--green); color:#fff; border:none; border-radius:9px; padding:10px 20px; font-weight:600; font-size:12.5px; cursor:pointer;}
+  @media (max-width:760px){ .lp-nav-links{display:none;} }
+
+  .lp-hero{position:relative; overflow:hidden; padding:64px 6vw 80px;
+    background:
+      linear-gradient(105deg, rgba(10,30,20,.90) 0%, rgba(10,40,25,.78) 40%, rgba(10,40,25,.35) 70%, rgba(10,40,25,.08) 100%),
+      url('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1600&q=80') center/cover no-repeat;
+    display:flex; flex-direction:column; align-items:flex-start;}
+  .lp-eyebrow{display:inline-flex; align-items:center; gap:7px; background:rgba(255,255,255,.14); backdrop-filter:blur(4px);
+    border:1px solid rgba(255,255,255,.28); color:#fff; font-size:10.5px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+    padding:6px 14px; border-radius:20px; margin-bottom:18px;}
+  .lp-eyebrow i{color:#ffd166; font-size:10px;}
+  .lp-hero h1{font-size:clamp(28px,4.2vw,46px); font-weight:700; color:#fff; line-height:1.25; max-width:680px; margin-bottom:16px; text-shadow:0 2px 12px rgba(0,0,0,.3);}
+  .lp-hero h1 span{color:#7be495;}
+  .lp-hero p{font-size:14.5px; color:rgba(255,255,255,.9); max-width:560px; line-height:1.65; margin-bottom:26px;}
+  .lp-hero-btns{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:34px;}
+  .lp-btn-primary{background:var(--green); color:#fff; border:none; border-radius:10px; padding:13px 24px; font-weight:600; font-size:13.5px; cursor:pointer;
+    box-shadow:0 8px 20px -6px rgba(30,126,52,.55);}
+  .lp-btn-ghost{background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.4); border-radius:10px; padding:13px 24px;
+    font-weight:600; font-size:13.5px; cursor:pointer; backdrop-filter:blur(4px);}
+  .lp-hero-stats{display:flex; gap:36px; flex-wrap:wrap;}
+  .lp-hero-stats div{color:#fff;}
+  .lp-hero-stats b{display:block; font-size:22px; font-weight:700;}
+  .lp-hero-stats span{font-size:11px; color:rgba(255,255,255,.75);}
+
+  .lp-section{padding:56px 6vw;}
+  .lp-section h2{font-size:24px; font-weight:700; margin-bottom:8px; text-align:center;}
+  .lp-section p.lp-sub{font-size:13px; color:var(--text-soft); text-align:center; max-width:560px; margin:0 auto 34px;}
+  .lp-features{display:grid; grid-template-columns:repeat(4,1fr); gap:18px;}
+  .lp-feat-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:22px 18px;}
+  .lp-feat-card .fi{width:42px;height:42px;border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:16px; margin-bottom:14px;}
+  .lp-feat-card h4{font-size:13.5px; font-weight:700; margin-bottom:6px;}
+  .lp-feat-card p{font-size:11.5px; color:var(--text-soft); line-height:1.55;}
+  @media (max-width:960px){ .lp-features{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:560px){ .lp-features{grid-template-columns:1fr;} }
+
+  .lp-roles-strip{background:var(--green-light); padding:48px 6vw; text-align:center;}
+  .lp-roles-strip h2{margin-bottom:10px;}
+
+  .lp-footer{margin-top:auto; background:#12291a; color:#cfe0d3; padding:30px 6vw; font-size:11.5px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;}
+  .lp-footer b{color:#fff;}
+
+  /* ===== LANDING PAGE — NARRATIVE FLOW ADDITIONS ===== */
+  .lp-eyebrow-sm{display:inline-flex; align-items:center; gap:6px; background:var(--red-light); color:var(--red); font-size:10px; font-weight:700;
+    letter-spacing:.5px; text-transform:uppercase; padding:5px 12px; border-radius:20px; margin:0 auto 12px;}
+  .lp-eyebrow-sm.blue{background:var(--blue-light); color:var(--blue);}
+  .lp-eyebrow-sm.green{background:var(--green-light); color:var(--green-dark);}
+  .lp-section.alt{background:#fff;}
+  .lp-center{text-align:center; display:block; width:fit-content; margin-left:auto; margin-right:auto;}
+
+  .pain-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:16px;}
+  .pain-card{background:var(--card); border:1px solid var(--border); border-left:3px solid var(--red); border-radius:12px; padding:18px 16px;}
+  .pain-card i{color:var(--red); font-size:15px; margin-bottom:10px; display:block;}
+  .pain-card h4{font-size:12.5px; font-weight:700; margin-bottom:5px;}
+  .pain-card p{font-size:11px; color:var(--text-soft); line-height:1.5;}
+  @media (max-width:960px){ .pain-grid{grid-template-columns:1fr 1fr;} }
+  @media (max-width:560px){ .pain-grid{grid-template-columns:1fr;} }
+
+  .lp-steps{display:grid; grid-template-columns:repeat(5,1fr); gap:14px;}
+  .lp-step{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px 14px; text-align:center; position:relative;}
+  .lp-step .step-num{width:28px;height:28px;border-radius:50%; background:var(--green); color:#fff; font-weight:700; font-size:12.5px;
+    display:flex; align-items:center; justify-content:center; margin:0 auto 12px;}
+  .lp-step h4{font-size:12px; font-weight:700; margin-bottom:6px;}
+  .lp-step p{font-size:10.5px; color:var(--text-soft); line-height:1.5;}
+  .lp-step:not(:last-child)::after{content:'\f061'; font-family:'Font Awesome 6 Free'; font-weight:900; position:absolute; top:14px; right:-11px;
+    color:#c9d0da; font-size:11px; z-index:2;}
+  @media (max-width:960px){ .lp-steps{grid-template-columns:1fr 1fr;} .lp-step:not(:last-child)::after{display:none;} }
+  @media (max-width:560px){ .lp-steps{grid-template-columns:1fr;} }
+
+  .lp-feas-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+  .lp-feas-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:22px 18px; border-top:3px solid var(--blue);}
+  .lp-feas-card:nth-child(2){border-top-color:var(--orange);}
+  .lp-feas-card:nth-child(3){border-top-color:var(--green);}
+  .lp-feas-card h4{font-size:13.5px; font-weight:700; margin-bottom:8px;}
+  .lp-feas-card p{font-size:11.5px; color:var(--text-soft); line-height:1.6;}
+  @media (max-width:860px){ .lp-feas-grid{grid-template-columns:1fr;} }
+
+  .lp-impact-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:8px;}
+  .lp-impact-card{background:#fff; border:1px solid var(--border); border-radius:12px; padding:18px 14px; text-align:center;}
+  .lp-impact-card i{color:var(--green); font-size:17px; margin-bottom:8px; display:block;}
+  .lp-impact-card h4{font-size:12px; font-weight:700; margin-bottom:4px;}
+  .lp-impact-card p{font-size:10.5px; color:var(--text-soft); line-height:1.5;}
+  @media (max-width:860px){ .lp-impact-grid{grid-template-columns:1fr 1fr;} }
+
+  .lp-tech-strip{padding:40px 6vw; text-align:center; border-top:1px solid var(--border);}
+  .tech-badge-row{display:flex; justify-content:center; gap:14px; flex-wrap:wrap; margin-top:22px;}
+  .tech-badge{display:inline-flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--border); border-radius:10px;
+    padding:9px 16px; font-size:11.5px; font-weight:600; color:var(--text);}
+  .tech-badge i{color:var(--green); font-size:13px;}
+
+  /* ===== REAL HEATMAPS (Leaflet + OpenStreetMap — free, no API key) ===== */
+  .leaflet-container{background:#eef1f5; font-family:'Poppins',sans-serif;}
+  .leaflet-container img{max-width:none !important;}
+  .leaflet-popup-content b{color:var(--green-dark);}
+  .heatmap-box{width:100%; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border);}
+  #appHeatmapMap{height:220px; width:100%;}
+  #lpHeatmapMap{height:380px; width:100%;}
+  .heatmap-legend{display:flex; gap:12px; margin-top:10px; font-size:10.5px; color:#5c6675;}
+  .heatmap-legend span{display:inline-flex; align-items:center; gap:5px;}
+  .heatmap-legend i{width:7px;height:7px;border-radius:50%;display:inline-block;}
+  .lp-map-section{padding:56px 6vw; background:#fff;}
+
+  /* ===== ROLE GATE (fake signup) ===== */
+  #roleGatePage{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px 5vw;
+    background:linear-gradient(135deg,#eef8ee 0%, #eaf3f8 100%);}
+  .rg-box{width:100%; max-width:900px; background:var(--card); border:1px solid var(--border); border-radius:18px; padding:38px 34px; box-shadow:0 20px 50px -20px rgba(0,0,0,.12);}
+  .rg-head{text-align:center; margin-bottom:28px;}
+  .rg-head .lp-brand{justify-content:center; margin-bottom:14px;}
+  .rg-head h2{font-size:20px; font-weight:700; margin-bottom:6px;}
+  .rg-head p{font-size:12.5px; color:var(--text-soft);}
+  .rg-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:16px;}
+  .rg-card{border:1.5px solid var(--border); border-radius:14px; padding:20px 14px; text-align:center; cursor:pointer; transition:.15s;}
+  .rg-card:hover{border-color:var(--green); background:var(--green-light); transform:translateY(-3px);}
+  .rg-card .ri{width:48px;height:48px;border-radius:50%; margin:0 auto 12px; display:flex; align-items:center; justify-content:center; font-size:18px;}
+  .rg-card h4{font-size:13px; font-weight:700; margin-bottom:5px;}
+  .rg-card p{font-size:10.5px; color:var(--text-soft); line-height:1.5;}
+  .rg-back{display:block; text-align:center; margin-top:24px; font-size:12px; color:var(--text-soft); cursor:pointer;}
+  @media (max-width:760px){ .rg-grid{grid-template-columns:1fr 1fr;} }
+  @media (max-width:480px){ .rg-grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<!-- ============ PUBLIC LANDING PAGE (no signup) ============ -->
+<div id="landingPage">
+  <nav class="lp-nav">
+    <div class="lp-brand">
+      <img class="logo-img" src="https://i.ibb.co/N2dWhgk3/Whats-App-Image-2026-09-26-at-15-56-23-removebg-preview.png" alt="SICP Logo">
+      <div>
+        <div class="lp-brand-title">SICP</div>
+        <div class="lp-brand-sub">Societal Innovation Collaboration Portal</div>
+      </div>
+    </div>
+    <div class="lp-nav-links">
+      <a onclick="scrollToId('lp-about')">About</a>
+      <a onclick="scrollToId('lp-features')">Features</a>
+      <a onclick="scrollToId('lp-roles')">Who Can Join</a>
+      <a onclick="scrollToId('lp-contact')">Contact</a>
+    </div>
+    <button class="lp-cta" onclick="goToSignup()">Get Started</button>
+  </nav>
+
+  <header class="lp-hero" id="lp-about">
+    <img class="lp-hero-emblem" src="https://i.ibb.co/N2dWhgk3/Whats-App-Image-2026-09-26-at-15-56-23-removebg-preview.png" alt="SICP Logo">
+    <span class="lp-eyebrow"><i class="fa-solid fa-landmark-dome"></i>Government of Jharkhand Initiative</span>
+    <h1>Turning Community Challenges into <span>Sustainable Solutions</span></h1>
+    <p>A unified ecosystem connecting citizens, universities, industry partners &amp; government to solve real-world problems across Jharkhand through innovation and collaboration.</p>
+    <div class="lp-hero-btns">
+      <button class="lp-btn-primary" onclick="goToSignup()"><i class="fa-solid fa-arrow-right-to-bracket"></i>&nbsp; Get Started</button>
+      <button class="lp-btn-ghost" onclick="scrollToId('lp-features')">Learn More</button>
+    </div>
+    <div class="lp-hero-stats">
+      <div><b>2,784</b><span>Challenges Raised</span></div>
+      <div><b>342</b><span>Active Projects</span></div>
+      <div><b>54</b><span>Universities</span></div>
+      <div><b>1.2M+</b><span>Lives Impacted</span></div>
+    </div>
+  </header>
+
+  <section class="lp-section alt" id="lp-problem">
+    <span class="lp-eyebrow-sm lp-center"><i class="fa-solid fa-triangle-exclamation"></i>&nbsp;The Problem</span>
+    <h2>Civic Complaints Get Lost in the Gap</h2>
+    <p class="lp-sub">Jharkhand already runs portals like E-Jan Samadhan, but real problems on the ground still fall through the cracks before they reach someone who can actually solve them.</p>
+    <div class="pain-grid">
+      <div class="pain-card"><i class="fa-solid fa-comments"></i><h4>Scattered Reporting</h4><p>Complaints come in through WhatsApp, CSC centres and web portals with no single unified system.</p></div>
+      <div class="pain-card"><i class="fa-solid fa-diagram-project"></i><h4>No Smart Routing</h4><p>Problems aren't matched to the right university, department or industry partner who can fix them.</p></div>
+      <div class="pain-card"><i class="fa-solid fa-clone"></i><h4>Duplicate &amp; Unprioritised</h4><p>Similar complaints pile up with no de-duplication or urgency ranking to guide action.</p></div>
+      <div class="pain-card"><i class="fa-solid fa-eye-slash"></i><h4>No Visibility</h4><p>Citizens and government can't track resolution status or measure the real-world impact.</p></div>
+    </div>
+  </section>
+
+  <section class="lp-section" id="lp-features">
+    <span class="lp-eyebrow-sm green lp-center"><i class="fa-solid fa-lightbulb"></i>&nbsp;The Solution</span>
+    <h2>One Platform, Four Stakeholders</h2>
+    <p class="lp-sub">SICP brings citizens, academic institutions, industry and government onto a single collaborative platform.</p>
+    <div class="lp-features">
+      <div class="lp-feat-card"><div class="fi ic-green"><i class="fa-solid fa-flag"></i></div><h4>Report Problems</h4><p>Citizens report real, on-ground community challenges with location and evidence.</p></div>
+      <div class="lp-feat-card"><div class="fi ic-blue"><i class="fa-solid fa-graduation-cap"></i></div><h4>Solve &amp; Innovate</h4><p>Universities and students pick up challenges and build deployable prototypes.</p></div>
+      <div class="lp-feat-card"><div class="fi ic-orange"><i class="fa-solid fa-hand-holding-heart"></i></div><h4>Fund &amp; Mentor</h4><p>Industry and CSR partners support promising projects with funding and mentorship.</p></div>
+      <div class="lp-feat-card"><div class="fi ic-purple"><i class="fa-solid fa-chart-column"></i></div><h4>Monitor Impact</h4><p>Government admins track outcomes and generate department-wide reports.</p></div>
+    </div>
+  </section>
+
+  <section class="lp-section alt" id="lp-how">
+    <span class="lp-eyebrow-sm blue lp-center"><i class="fa-solid fa-diagram-project"></i>&nbsp;How It Works</span>
+    <h2>The Triple Helix Engine</h2>
+    <p class="lp-sub">Government, universities and industry, connected by AI &amp; GIS — from a citizen's complaint to a deployed solution.</p>
+    <div class="lp-steps">
+      <div class="lp-step"><div class="step-num">1</div><h4>Citizen Reports</h4><p>Submitted via WhatsApp Bot, web portal or Pragya Kendra (CSC) with photo/video &amp; location.</p></div>
+      <div class="lp-step"><div class="step-num">2</div><h4>AI Problem Engine</h4><p>NLP &amp; GIS classify domain and priority, and remove duplicates via cosine-similarity clustering.</p></div>
+      <div class="lp-step"><div class="step-num">3</div><h4>University Routing</h4><p>ML match-score (Domain 40% + Ranking 30% + Incubation 15% + Faculty 15%) finds the best-fit institute.</p></div>
+      <div class="lp-step"><div class="step-num">4</div><h4>Triple Helix Builds</h4><p>Govt. approves, university develops, industry funds &amp; mentors — tracked live on the CWM dashboard.</p></div>
+      <div class="lp-step"><div class="step-num">5</div><h4>Impact &amp; Reward</h4><p>Solutions become pilots, startups &amp; student credits; citizens get real-time resolution feedback.</p></div>
+    </div>
+  </section>
+
+  <section class="lp-map-section" id="lp-map">
+    <span class="lp-eyebrow-sm lp-center"><i class="fa-solid fa-map-location-dot"></i>&nbsp;Live Reach</span>
+    <h2>Real-Time Challenge Heatmap</h2>
+    <p class="lp-sub">An actual OpenStreetMap view of Jharkhand within India — no paid API, live district-level complaint density.</p>
+    <div class="heatmap-box"><div id="lpHeatmapMap"></div></div>
+  </section>
+
+  <section class="lp-section" id="lp-feasibility">
+    <span class="lp-eyebrow-sm lp-center"><i class="fa-solid fa-scale-balanced"></i>&nbsp;Why It Works</span>
+    <h2>Built to Scale, Built to Last</h2>
+    <div class="lp-feas-grid">
+      <div class="lp-feas-card"><h4><i class="fa-solid fa-building-columns"></i>&nbsp; Institutional Feasibility</h4><p>Universities are already ranked on NIRF/NAAC, and incubation centres like IIT-ISM ACIC already exist — institutions without one can share resources with those that do.</p></div>
+      <div class="lp-feas-card"><h4><i class="fa-solid fa-chart-line"></i>&nbsp; Viability &amp; Scalability</h4><p>Rollout is phased district-by-district before expanding zone-wise, so the system scales without overloading any single region.</p></div>
+      <div class="lp-feas-card"><h4><i class="fa-solid fa-seedling"></i>&nbsp; Self-Sustaining</h4><p>Funded via CSR, government &amp; university participation — universities gain NIRF ranking points, students earn credits &amp; placements.</p></div>
+    </div>
+  </section>
+
+  <section class="lp-roles-strip" id="lp-roles">
+    <h2>Who Can Join SICP?</h2>
+    <p class="lp-sub">Citizens, Universities/HEIs, Industry &amp; Startups, and Government Admins — everyone has a role to play.</p>
+    <div class="lp-impact-grid">
+      <div class="lp-impact-card"><i class="fa-solid fa-landmark-dome"></i><h4>Government</h4><p>Real-time analytics on a unified dashboard, district &amp; zone-wise.</p></div>
+      <div class="lp-impact-card"><i class="fa-solid fa-graduation-cap"></i><h4>Universities &amp; Students</h4><p>Early industry exposure, real-world experience &amp; placement opportunities.</p></div>
+      <div class="lp-impact-card"><i class="fa-solid fa-industry"></i><h4>Industry &amp; CSR</h4><p>Fresh ideas, products &amp; direct community connections.</p></div>
+      <div class="lp-impact-card"><i class="fa-solid fa-people-roof"></i><h4>Citizens</h4><p>Faster resolution, less paperwork &amp; a cleaner, better ecosystem.</p></div>
+    </div>
+    <button class="lp-cta" style="margin-top:28px;" onclick="goToSignup()">Get Started as a Member</button>
+  </section>
+
+  <section class="lp-tech-strip">
+    <span class="lp-eyebrow-sm green lp-center"><i class="fa-solid fa-code"></i>&nbsp;Under the Hood</span>
+    <h2 style="font-size:16px;">Powered By</h2>
+    <div class="tech-badge-row">
+      <span class="tech-badge"><i class="fa-solid fa-display"></i>Web &amp; WhatsApp Bot</span>
+      <span class="tech-badge"><i class="fa-solid fa-key"></i>Firebase Auth</span>
+      <span class="tech-badge"><i class="fa-solid fa-cloud"></i>Cloud Backend</span>
+      <span class="tech-badge"><i class="fa-solid fa-map-location-dot"></i>Open-Source GIS</span>
+      <span class="tech-badge"><i class="fa-solid fa-brain"></i>AI &amp; Vision Models</span>
+    </div>
+  </section>
+
+  <footer class="lp-footer" id="lp-contact">
+    <div><b>SICP</b> &middot; Dept. of Higher &amp; Technical Education<br>&copy; 2026 Government of Jharkhand</div>
+    <div>Ranchi, Jharkhand &middot; contact@sicp.jharkhand.gov.in</div>
+  </footer>
+</div>
+
+<!-- ============ FAKE SIGNUP / ROLE SELECT ============ -->
+<div id="roleGatePage" style="display:none;">
+  <div class="rg-box">
+    <div class="rg-head">
+      <div class="lp-brand">
+        <img class="logo-img" src="https://i.ibb.co/N2dWhgk3/Whats-App-Image-2026-09-26-at-15-56-23-removebg-preview.png" alt="SICP Logo">
+        <div style="text-align:left;">
+          <div class="lp-brand-title">SICP</div>
+          <div class="lp-brand-sub">Societal Innovation Collaboration Portal</div>
+        </div>
+      </div>
+      <h2>Continue as...</h2>
+      <p>Choose how you'd like to use the platform. You can switch anytime later.</p>
+    </div>
+    <div class="rg-grid">
+      <div class="rg-card" onclick="selectRoleAndEnter('citizen')">
+        <div class="ri ic-green"><i class="fa-solid fa-user"></i></div>
+        <h4>Citizen</h4>
+        <p>Report community problems &amp; track progress</p>
+      </div>
+      <div class="rg-card" onclick="selectRoleAndEnter('university')">
+        <div class="ri ic-blue"><i class="fa-solid fa-graduation-cap"></i></div>
+        <h4>University / HEI</h4>
+        <p>Solve challenges &amp; showcase projects</p>
+      </div>
+      <div class="rg-card" onclick="selectRoleAndEnter('industry')">
+        <div class="ri ic-orange"><i class="fa-solid fa-briefcase"></i></div>
+        <h4>Industry / Startup</h4>
+        <p>Fund, mentor &amp; co-develop solutions</p>
+      </div>
+      <div class="rg-card" onclick="selectRoleAndEnter('admin')">
+        <div class="ri ic-purple"><i class="fa-solid fa-landmark-dome"></i></div>
+        <h4>Government Admin</h4>
+        <p>Monitor ecosystem &amp; generate reports</p>
+      </div>
+    </div>
+    <span class="rg-back" onclick="backToLanding()"><i class="fa-solid fa-arrow-left"></i>&nbsp; Back to home</span>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="app" id="appRoot" style="display:none;">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img class="logo-img" src="https://i.ibb.co/N2dWhgk3/Whats-App-Image-2026-09-26-at-15-56-23-removebg-preview.png" alt="SICP Logo">
+      <div>
+        <div class="brand-title">SICP</div>
+        <div class="brand-sub">SOCIETAL INNOVATION<br>COLLABORATION PORTAL</div>
+      </div>
+    </div>
+
+    <div class="role-switcher">
+      <label><i class="fa-solid fa-right-left"></i>&nbsp; Viewing as</label>
+      <select id="roleSelect" onchange="setRole(this.value)">
+        <option value="citizen">Citizen</option>
+        <option value="university">University / HEI</option>
+        <option value="industry">Industry / Startup / CSR</option>
+        <option value="admin">Government Admin</option>
+      </select>
+    </div>
+
+    <nav class="nav-scroll" id="navScroll"></nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-submit" id="footerBtn"><i class="fa-solid fa-plus"></i>Submit a Challenge</button>
+      <div class="copyright">&copy; 2026 Government of Jharkhand<br>Dept. of Higher &amp; Technical Education</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn"><i class="fa-solid fa-bars"></i></button>
+      <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><span>Search challenges, projects, institutions, experts...</span></div>
+      <div class="topbar-right">
+        <div class="lang-select"><i class="fa-solid fa-globe"></i><span>English</span><i class="fa-solid fa-chevron-down" style="font-size:10px;"></i></div>
+        <i class="fa-regular fa-moon icon-btn"></i>
+        <div class="icon-btn"><i class="fa-regular fa-bell"></i><span class="badge">12</span></div>
+        <div class="user-chip">
+          <img id="userAvatar" src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop&crop=faces" alt="User">
+          <div>
+            <div class="u-name" id="userName">Dr. Anjali Sinha</div>
+            <div class="u-role"><span class="dot"></span><span id="userRole">State Admin</span></div>
+          </div>
+          <i class="fa-solid fa-chevron-down" style="font-size:10px;color:#9aa1ac;"></i>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ============ DASHBOARD ============ -->
+      <section class="page-section active" id="sec-dashboard">
+        <div class="page-title" id="dashTitle">Welcome back, Rahul</div>
+        <div class="page-sub" id="dashSub">Here's what's happening across the innovation ecosystem today.</div>
+
+        <div class="role-banner">
+          <i class="fa-solid fa-circle-info" style="color:var(--green);"></i>
+          <span id="roleBannerText">You're viewing SICP as a <b>Citizen</b>. Report problems in your community and track their progress.</span>
+        </div>
+
+        <div class="stats-row" id="statsRow"></div>
+
+        <div class="hero-row">
+          <div class="hero-card">
+            <span class="hero-eyebrow"><i class="fa-solid fa-landmark-dome"></i>Government of Jharkhand Initiative</span>
+            <h1 id="heroTitle">Turning Community Challenges into <span>Sustainable Solutions</span></h1>
+            <p id="heroSub">A unified ecosystem connecting citizens, universities, industry partners & government to solve real-world problems through innovation and collaboration.</p>
+            <div class="hero-btn-row">
+              <button class="hero-btn" id="heroBtn" onclick="heroBtnAction()">Report a Problem</button>
+              <button class="hero-btn-ghost" onclick="showSection('challenges')">Explore Challenges</button>
+            </div>
+          </div>
+          <div class="map-card">
+            <div class="panel-head"><h3>Challenge Heatmap</h3><a onclick="showSection('challenges')">View Full Map</a></div>
+            <div class="heatmap-box"><div id="appHeatmapMap"></div></div>
+            <div class="heatmap-legend">
+              <span><i style="background:#ef4444;"></i> High</span>
+              <span><i style="background:#f59e0b;"></i> Medium</span>
+              <span><i style="background:#22c55e;"></i> Low</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3 id="trendTitle">Trending Challenges</h3><a onclick="showSection('challenges')">View All</a></div>
+          <div class="trend-scroll">
+            <div class="trend-card"><div class="thumb"><span class="cat-tag" style="background:#374151;">Disaster Mgmt</span><img src="https://images.unsplash.com/photo-1547683905-f686c993aae5?w=400&q=80" alt="Flooded road"></div>
+              <div class="trend-body"><h4>Flood Prone Road Connectivity</h4><div class="trend-loc"><i class="fa-solid fa-location-dot"></i>Ranchi, Jharkhand</div><div class="supp"><i class="fa-solid fa-users"></i>23 Supporting Reports</div></div></div>
+            <div class="trend-card"><div class="thumb"><span class="cat-tag" style="background:#2563eb;">Water Mgmt</span><img src="https://images.unsplash.com/photo-1541919329513-35f7af297129?w=400&q=80" alt="Hand pump"></div>
+              <div class="trend-body"><h4>Contaminated Drinking Water</h4><div class="trend-loc"><i class="fa-solid fa-location-dot"></i>West Singhbhum</div><div class="supp"><i class="fa-solid fa-users"></i>17 Supporting Reports</div></div></div>
+            <div class="trend-card"><div class="thumb"><span class="cat-tag" style="background:#16a34a;">Agriculture</span><img src="https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=400&q=80" alt="Paddy field"></div>
+              <div class="trend-body"><h4>Paddy Crop Disease Outbreak</h4><div class="trend-loc"><i class="fa-solid fa-location-dot"></i>Dhanbad</div><div class="supp"><i class="fa-solid fa-users"></i>31 Supporting Reports</div></div></div>
+            <div class="trend-card"><div class="thumb"><span class="cat-tag" style="background:#f5820a;">Rural Dev</span><img src="https://images.unsplash.com/photo-1509390144018-eeaf65052242?w=400&q=80" alt="Street light pole"></div>
+              <div class="trend-body"><h4>Solar Street Light Installation</h4><div class="trend-loc"><i class="fa-solid fa-location-dot"></i>Simdega</div><div class="supp"><i class="fa-solid fa-users"></i>15 Supporting Reports</div></div></div>
+            <div class="trend-card"><div class="thumb"><span class="cat-tag" style="background:#e11d48;">Healthcare</span><img src="https://images.unsplash.com/photo-1587351021355-a479a299d2f9?w=400&q=80" alt="Health centre"></div>
+              <div class="trend-body"><h4>Primary Health Centre Access</h4><div class="trend-loc"><i class="fa-solid fa-location-dot"></i>Latehar</div><div class="supp"><i class="fa-solid fa-users"></i>12 Supporting Reports</div></div></div>
+          </div>
+        </div>
+
+        <div class="quick-access">
+          <span class="qa-label">Quick Access</span>
+          <div class="qa-item"><div class="qa-ic"><i class="fa-regular fa-map"></i></div><div><b>Challenge Map</b><span>Explore by location</span></div></div>
+          <div class="qa-item"><div class="qa-ic"><i class="fa-solid fa-user-group"></i></div><div><b>Find Experts</b><span>Connect with experts</span></div></div>
+          <div class="qa-item"><div class="qa-ic"><i class="fa-solid fa-indian-rupee-sign"></i></div><div><b>Funding</b><span>Grants & sponsorship</span></div></div>
+          <div class="qa-item"><div class="qa-ic"><i class="fa-regular fa-lightbulb"></i></div><div><b>Innovation Hub</b><span>Ideas to solutions</span></div></div>
+          <div class="qa-item"><div class="qa-ic"><i class="fa-solid fa-trophy"></i></div><div><b>Success Stories</b><span>Impact that inspires</span></div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><h3>Challenges by Category</h3><a>View Report</a></div>
+            <div class="donut-wrap">
+              <div class="donut">
+                <svg width="100" height="100" viewBox="0 0 42 42">
+                  <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#e5e7eb" stroke-width="6"/>
+                  <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#2563eb" stroke-width="6" stroke-dasharray="28 72"/>
+                  <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#06b6d4" stroke-width="6" stroke-dasharray="22 78" stroke-dashoffset="-28"/>
+                  <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#22c55e" stroke-width="6" stroke-dasharray="18 82" stroke-dashoffset="-50"/>
+                  <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#f59e0b" stroke-width="6" stroke-dasharray="15 85" stroke-dashoffset="-68"/>
+                  <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#a855f7" stroke-width="6" stroke-dasharray="9 91" stroke-dashoffset="-83"/>
+                  <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#9ca3af" stroke-width="6" stroke-dasharray="8 92" stroke-dashoffset="-92"/>
+                </svg>
+                <div class="donut-center"><b>2,784</b><span>Total</span></div>
+              </div>
+              <ul class="legend-list">
+                <li><span class="lbl"><i style="background:#2563eb;"></i>Disaster Mgmt</span><b>28%</b></li>
+                <li><span class="lbl"><i style="background:#06b6d4;"></i>Water Mgmt</span><b>22%</b></li>
+                <li><span class="lbl"><i style="background:#22c55e;"></i>Agriculture</span><b>18%</b></li>
+                <li><span class="lbl"><i style="background:#f59e0b;"></i>Rural Dev</span><b>15%</b></li>
+                <li><span class="lbl"><i style="background:#a855f7;"></i>Healthcare</span><b>9%</b></li>
+                <li><span class="lbl"><i style="background:#9ca3af;"></i>Others</span><b>8%</b></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Recent Activity</h3><a>View All</a></div>
+            <ul style="display:flex; flex-direction:column; gap:14px;">
+              <li style="display:flex; gap:10px;"><div class="stat-icon ic-green" style="width:30px;height:30px;font-size:11px;"><i class="fa-solid fa-flag"></i></div><div><div class="row-title">New challenge submitted in Simdega district</div><div class="row-sub">2 minutes ago</div></div></li>
+              <li style="display:flex; gap:10px;"><div class="stat-icon ic-blue" style="width:30px;height:30px;font-size:11px;"><i class="fa-solid fa-graduation-cap"></i></div><div><div class="row-title">IIT (ISM) Dhanbad joined "Mine Water Treatment Solution"</div><div class="row-sub">1 hour ago</div></div></li>
+              <li style="display:flex; gap:10px;"><div class="stat-icon ic-orange" style="width:30px;height:30px;font-size:11px;"><i class="fa-solid fa-handshake"></i></div><div><div class="row-title">Tata Steel offered mentorship for Flood Early Warning System</div><div class="row-sub">3 hours ago</div></div></li>
+              <li style="display:flex; gap:10px;"><div class="stat-icon ic-purple" style="width:30px;height:30px;font-size:11px;"><i class="fa-solid fa-flask"></i></div><div><div class="row-title">Project "Smart Irrigation System" reached prototype stage</div><div class="row-sub">5 hours ago</div></div></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Citizen: my submissions -->
+        <div class="panel role-only" data-role="citizen">
+          <div class="panel-head"><h3>My Submitted Problems</h3><a onclick="showSection('submit')">+ Report New Problem</a></div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Problem</th><th>Domain</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><div class="row-title">Broken hand pump near Community Hall</div><div class="row-sub">Ranchi &middot; Ward 12</div></td><td>Water Mgmt</td><td><span class="chip chip-review">Under Review</span></td><td>3 days ago</td><td><button class="btn-sm">Track</button></td></tr>
+              <tr><td><div class="row-title">Waterlogging on main school route</div><div class="row-sub">Khunti</div></td><td>Rural Dev</td><td><span class="chip chip-assigned">Assigned to BIT Mesra</span></td><td>1 week ago</td><td><button class="btn-sm">Track</button></td></tr>
+              <tr><td><div class="row-title">Crop pest outbreak in paddy fields</div><div class="row-sub">Dhanbad</div></td><td>Agriculture</td><td><span class="chip chip-done">Solution Deployed</span></td><td>2 months ago</td><td><button class="btn-sm">View</button></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+
+        <!-- University: assigned challenges -->
+        <div class="panel role-only" data-role="university">
+          <div class="panel-head"><h3>Challenges Assigned to Your Institution</h3><a onclick="showSection('challenges')">View All</a></div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Challenge</th><th>Domain</th><th>Priority</th><th>Team</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><div class="row-title">Mine Water Treatment Solution</div><div class="row-sub">Dhanbad</div></td><td>Environment</td><td><span class="chip chip-high">High</span></td>
+                <td><div class="avatar-stack"><img src="https://randomuser.me/api/portraits/men/32.jpg"><img src="https://randomuser.me/api/portraits/women/44.jpg"><img src="https://randomuser.me/api/portraits/men/65.jpg"></div></td>
+                <td><span class="chip chip-progress">In Progress</span></td><td><button class="btn-sm primary">Manage</button></td></tr>
+              <tr><td><div class="row-title">Flood Early Warning System</div><div class="row-sub">Ranchi</div></td><td>Disaster Mgmt</td><td><span class="chip chip-high">High</span></td>
+                <td><div class="avatar-stack"><img src="https://randomuser.me/api/portraits/women/68.jpg"><img src="https://randomuser.me/api/portraits/men/12.jpg"></div></td>
+                <td><span class="chip chip-review">Proposal Stage</span></td><td><button class="btn-sm">Manage</button></td></tr>
+              <tr><td><div class="row-title">Smart Irrigation System</div><div class="row-sub">West Singhbhum</div></td><td>Agriculture</td><td><span class="chip chip-med">Medium</span></td>
+                <td><div class="avatar-stack"><img src="https://randomuser.me/api/portraits/men/22.jpg"></div></td>
+                <td><span class="chip chip-done">Prototype Ready</span></td><td><button class="btn-sm">Manage</button></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+
+        <!-- Industry: open opportunities -->
+        <div class="panel role-only" data-role="industry">
+          <div class="panel-head"><h3>Open Collaboration Opportunities</h3><a onclick="showSection('challenges')">Browse All</a></div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Project</th><th>University</th><th>Support Needed</th><th>Domain</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><div class="row-title">Mine Water Treatment Solution</div></td><td>IIT (ISM) Dhanbad</td><td>Funding + Prototyping</td><td>Environment</td><td><button class="btn-sm primary">Offer Support</button></td></tr>
+              <tr><td><div class="row-title">Solar Street Light Installation</div></td><td>BIT Mesra</td><td>Field Deployment</td><td>Rural Dev</td><td><button class="btn-sm primary">Offer Support</button></td></tr>
+              <tr><td><div class="row-title">Paddy Crop Disease Outbreak</div></td><td>NIT Jamshedpur</td><td>Mentorship</td><td>Agriculture</td><td><button class="btn-sm primary">Offer Support</button></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+
+        <!-- Admin: district heatmap + top unis -->
+        <div class="grid-2 role-only" data-role="admin">
+          <div class="panel">
+            <div class="panel-head"><h3>Challenge Heatmap</h3><a>View Full Map</a></div>
+            <svg viewBox="0 0 300 200" width="100%" height="150">
+              <polygon points="60,20 140,15 190,40 220,70 210,110 170,150 120,170 70,150 40,120 30,70" fill="#fde68a" stroke="#fff" stroke-width="2"/>
+              <circle cx="150" cy="90" r="20" fill="#ef4444" opacity="0.75"/>
+              <circle cx="90" cy="60" r="12" fill="#f59e0b" opacity="0.75"/>
+              <circle cx="180" cy="130" r="14" fill="#f59e0b" opacity="0.75"/>
+              <circle cx="70" cy="130" r="9" fill="#22c55e" opacity="0.75"/>
+            </svg>
+            <div style="display:flex; gap:14px; margin-top:8px; font-size:11px; color:#5c6675;">
+              <span><i style="background:#ef4444;width:8px;height:8px;border-radius:50%;display:inline-block;"></i> High</span>
+              <span><i style="background:#f59e0b;width:8px;height:8px;border-radius:50%;display:inline-block;"></i> Medium</span>
+              <span><i style="background:#22c55e;width:8px;height:8px;border-radius:50%;display:inline-block;"></i> Low</span>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Top Performing Universities</h3><a>View All</a></div>
+            <table>
+              <tr><td><b>IIT (ISM) Dhanbad</b><div class="row-sub">24 Projects</div></td><td style="text-align:right;color:var(--orange);font-weight:600;">4.8 <i class="fa-solid fa-star"></i></td></tr>
+              <tr><td><b>BIT Mesra</b><div class="row-sub">18 Projects</div></td><td style="text-align:right;color:var(--orange);font-weight:600;">4.6 <i class="fa-solid fa-star"></i></td></tr>
+              <tr><td><b>NIT Jamshedpur</b><div class="row-sub">15 Projects</div></td><td style="text-align:right;color:var(--orange);font-weight:600;">4.5 <i class="fa-solid fa-star"></i></td></tr>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SUBMIT CHALLENGE (Citizen) ============ -->
+      <section class="page-section" id="sec-submit">
+        <div class="page-title">Report a Societal Challenge</div>
+        <div class="page-sub">Describe the problem in your community — AI will help categorize and route it to the right institution.</div>
+        <div class="panel">
+          <div class="form-grid">
+            <div class="field full"><label>Problem Title</label><input type="text" placeholder="e.g. Broken hand pump near Community Hall"></div>
+            <div class="field"><label>Domain (auto-suggested by AI)</label>
+              <select><option>Water Resource Management</option><option>Education</option><option>Healthcare</option><option>Agriculture</option><option>Disaster Management</option><option>Environment</option><option>Urban Infrastructure</option><option>Rural Livelihoods</option></select>
+            </div>
+            <div class="field"><label>District</label>
+              <select><option>Ranchi</option><option>Dhanbad</option><option>West Singhbhum</option><option>Simdega</option><option>Khunti</option><option>Latehar</option></select>
+            </div>
+            <div class="field full"><label>Description</label><textarea placeholder="Explain the issue, its impact on the community, and any prior attempts to resolve it..."></textarea></div>
+            <div class="field full"><label>Upload Photos / Videos / Documents</label>
+              <div class="upload-box"><i class="fa-solid fa-cloud-arrow-up"></i>Drag & drop files here, or click to browse<br><span style="font-size:10.5px;">JPG, PNG, MP4, PDF up to 25MB</span></div>
+            </div>
+            <div class="field"><label>Location (GPS)</label><input type="text" placeholder="Auto-detect or pin on map" value="23.3441&deg; N, 85.3096&deg; E"></div>
+            <div class="field"><label>Submitted On Behalf Of</label>
+              <select><option>Myself (Individual Citizen)</option><option>Community Organization</option><option>Panchayati Raj Institution</option><option>Urban Local Body</option><option>Government Department</option></select>
+            </div>
+          </div>
+          <div class="action-row" style="margin-top:6px;">
+            <button class="btn-sm primary" style="padding:10px 20px;"><i class="fa-solid fa-paper-plane"></i>&nbsp; Submit Challenge</button>
+            <button class="btn-sm" style="padding:10px 20px;">Save as Draft</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CHALLENGES ============ -->
+      <section class="page-section" id="sec-challenges">
+        <div class="page-title">Challenges</div>
+        <div class="page-sub" id="challengesSub">Browse and track societal challenges across Jharkhand.</div>
+        <div class="panel">
+          <div class="panel-head">
+            <h3>All Challenges (2,784)</h3>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <select style="border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:11.5px;"><option>All Domains</option><option>Water Mgmt</option><option>Agriculture</option><option>Disaster Mgmt</option></select>
+              <select style="border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:11.5px;"><option>All Priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+            </div>
+          </div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Challenge</th><th>Domain</th><th>Location</th><th>Priority</th><th>Status</th><th>Institution</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><div class="row-title">Flood Prone Road Connectivity</div></td><td>Disaster Mgmt</td><td>Ranchi</td><td><span class="chip chip-high">High</span></td><td><span class="chip chip-review">Under Review</span></td><td>Unassigned</td><td><button class="btn-sm">View</button></td></tr>
+              <tr><td><div class="row-title">Contaminated Drinking Water</div></td><td>Water Mgmt</td><td>West Singhbhum</td><td><span class="chip chip-high">High</span></td><td><span class="chip chip-assigned">Assigned</span></td><td>NIT Jamshedpur</td><td><button class="btn-sm">View</button></td></tr>
+              <tr><td><div class="row-title">Paddy Crop Disease Outbreak</div></td><td>Agriculture</td><td>Dhanbad</td><td><span class="chip chip-med">Medium</span></td><td><span class="chip chip-progress">In Progress</span></td><td>BIT Mesra</td><td><button class="btn-sm">View</button></td></tr>
+              <tr><td><div class="row-title">Solar Street Light Installation</div></td><td>Rural Dev</td><td>Simdega</td><td><span class="chip chip-med">Medium</span></td><td><span class="chip chip-progress">In Progress</span></td><td>BIT Mesra</td><td><button class="btn-sm">View</button></td></tr>
+              <tr><td><div class="row-title">Primary Health Centre Access</div></td><td>Healthcare</td><td>Latehar</td><td><span class="chip chip-low">Low</span></td><td><span class="chip chip-done">Deployed</span></td><td>Ranchi University</td><td><button class="btn-sm">View</button></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ============ UNIVERSITIES ============ -->
+      <section class="page-section" id="sec-universities">
+        <div class="page-title">Universities & HEIs</div>
+        <div class="page-sub">54 registered Higher Education Institutions across Jharkhand.</div>
+        <div class="grid-3">
+          <div class="card-media"><img src="https://images.unsplash.com/photo-1592280771190-3e2e4d571952?w=400&q=80" alt="IIT ISM Dhanbad campus"><div class="cm-body"><h4>IIT (ISM) Dhanbad</h4><div class="row-sub">Innovation Centre &middot; 24 Active Projects</div><div class="progress-bar"><div style="width:82%;"></div></div><div class="row-sub" style="margin-top:6px;">Rating 4.8 <i class="fa-solid fa-star" style="color:var(--orange);"></i></div></div></div>
+          <div class="card-media"><img src="https://images.unsplash.com/photo-1607013251379-e6eecfffe234?w=400&q=80" alt="BIT Mesra campus"><div class="cm-body"><h4>BIT Mesra</h4><div class="row-sub">Incubation Facility &middot; 18 Active Projects</div><div class="progress-bar"><div style="width:70%;"></div></div><div class="row-sub" style="margin-top:6px;">Rating 4.6 <i class="fa-solid fa-star" style="color:var(--orange);"></i></div></div></div>
+          <div class="card-media"><img src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=400&q=80" alt="NIT Jamshedpur campus"><div class="cm-body"><h4>NIT Jamshedpur</h4><div class="row-sub">Research Lab &middot; 15 Active Projects</div><div class="progress-bar"><div style="width:60%;"></div></div><div class="row-sub" style="margin-top:6px;">Rating 4.5 <i class="fa-solid fa-star" style="color:var(--orange);"></i></div></div></div>
+          <div class="card-media"><img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&q=80" alt="Kolhan University campus"><div class="cm-body"><h4>Kolhan University</h4><div class="row-sub">Multidisciplinary &middot; 12 Active Projects</div><div class="progress-bar"><div style="width:48%;"></div></div><div class="row-sub" style="margin-top:6px;">Rating 4.2 <i class="fa-solid fa-star" style="color:var(--orange);"></i></div></div></div>
+          <div class="card-media"><img src="https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?w=400&q=80" alt="Ranchi University campus"><div class="cm-body"><h4>Ranchi University</h4><div class="row-sub">Community Outreach &middot; 10 Active Projects</div><div class="progress-bar"><div style="width:41%;"></div></div><div class="row-sub" style="margin-top:6px;">Rating 4.1 <i class="fa-solid fa-star" style="color:var(--orange);"></i></div></div></div>
+          <div class="panel" style="display:flex; align-items:center; justify-content:center; border-style:dashed; color:var(--text-soft); font-size:12.5px; cursor:pointer;"><i class="fa-solid fa-plus" style="margin-right:6px;"></i>Register New Institution</div>
+        </div>
+      </section>
+
+      <!-- ============ INDUSTRY ============ -->
+      <section class="page-section" id="sec-industry">
+        <div class="page-title">Industry & Partners</div>
+        <div class="page-sub">128 industry partners, startups, MSMEs and CSR organizations engaged.</div>
+        <div class="grid-3" style="margin-bottom:18px;">
+          <div class="card-media"><img src="https://images.unsplash.com/photo-1565514020179-026b92b2d70b?w=400&q=80" alt="Steel industry plant"><div class="cm-body"><h4>Tata Steel</h4><div class="row-sub">CSR &middot; 6 Projects</div><span class="chip chip-done">Mentorship + Funding</span></div></div>
+          <div class="card-media"><img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&q=80" alt="Renewable energy field"><div class="cm-body"><h4>Adani Foundation</h4><div class="row-sub">CSR &middot; 4 Projects</div><span class="chip chip-progress">Funding</span></div></div>
+          <div class="card-media"><img src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&q=80" alt="Agritech startup team"><div class="cm-body"><h4>AgroNext Startup</h4><div class="row-sub">Startup &middot; 2 Projects</div><span class="chip chip-assigned">Co-development</span></div></div>
+        </div>
+        <div class="panel">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Partner</th><th>Type</th><th>Engagement</th><th>Projects</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><div class="row-title">Tata Steel</div></td><td>CSR</td><td>Mentorship + Funding</td><td>6</td><td><button class="btn-sm">View</button></td></tr>
+              <tr><td><div class="row-title">Adani Foundation</div></td><td>CSR</td><td>Funding</td><td>4</td><td><button class="btn-sm">View</button></td></tr>
+              <tr><td><div class="row-title">AgroNext Startup</div></td><td>Startup</td><td>Co-development</td><td>2</td><td><button class="btn-sm">View</button></td></tr>
+              <tr><td><div class="row-title">Jharkhand MSME Cluster</div></td><td>MSME</td><td>Prototyping</td><td>5</td><td><button class="btn-sm">View</button></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ============ PROJECTS (Kanban) ============ -->
+      <section class="page-section" id="sec-projects">
+        <div class="page-title">Project Lifecycle</div>
+        <div class="page-sub">Track milestones from proposal to deployment.</div>
+        <div class="kanban">
+          <div class="kanban-col"><h4>Proposal <span>82</span></h4>
+            <div class="kcard"><b>Flood Early Warning System</b><div class="row-sub">IIT (ISM) Dhanbad</div><span class="chip chip-high">High</span></div>
+            <div class="kcard"><b>Digital Literacy Toolkit</b><div class="row-sub">Ranchi University</div><span class="chip chip-med">Medium</span></div>
+          </div>
+          <div class="kanban-col"><h4>In Progress <span>130</span></h4>
+            <div class="kcard"><b>Mine Water Treatment</b><div class="row-sub">IIT (ISM) Dhanbad</div><span class="chip chip-progress">65% complete</span></div>
+            <div class="kcard"><b>Smart Irrigation System</b><div class="row-sub">BIT Mesra</div><span class="chip chip-progress">40% complete</span></div>
+          </div>
+          <div class="kanban-col"><h4>Pilot Testing <span>62</span></h4>
+            <div class="kcard"><b>Solar Street Light</b><div class="row-sub">BIT Mesra &middot; Simdega</div><span class="chip chip-review">Field Trial</span></div>
+          </div>
+          <div class="kanban-col"><h4>Deployed <span>24</span></h4>
+            <div class="kcard"><b>Primary Health Kiosk</b><div class="row-sub">Ranchi University</div><span class="chip chip-done">Live</span></div>
+            <div class="kcard"><b>Paddy Disease Alert App</b><div class="row-sub">NIT Jamshedpur</div><span class="chip chip-done">Live</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ANALYTICS (Admin) ============ -->
+      <section class="page-section" id="sec-analytics">
+        <div class="page-title">Reports & Analytics</div>
+        <div class="page-sub">Government-wide monitoring of the innovation ecosystem.</div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-top"><span class="stat-label">Challenges Received</span><div class="stat-icon ic-green"><i class="fa-solid fa-flag"></i></div></div><div class="stat-value">2,784</div><div class="stat-delta up">+12% MoM</div></div>
+          <div class="stat-card"><div class="stat-top"><span class="stat-label">Institutional Participation</span><div class="stat-icon ic-orange"><i class="fa-solid fa-graduation-cap"></i></div></div><div class="stat-value">54 HEIs</div><div class="stat-delta">across 24 districts</div></div>
+          <div class="stat-card"><div class="stat-top"><span class="stat-label">Patents / IP Filed</span><div class="stat-icon ic-purple"><i class="fa-solid fa-lightbulb"></i></div></div><div class="stat-value">37</div><div class="stat-delta up">+5 this quarter</div></div>
+          <div class="stat-card"><div class="stat-top"><span class="stat-label">Startups Created</span><div class="stat-icon ic-cyan"><i class="fa-solid fa-rocket"></i></div></div><div class="stat-value">14</div><div class="stat-delta">from deployed solutions</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="panel"><div class="panel-head"><h3>Domain-wise Distribution</h3></div>
+            <div class="donut-wrap">
+              <div class="donut"><svg width="100" height="100" viewBox="0 0 42 42">
+                <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#e5e7eb" stroke-width="6"/>
+                <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#2563eb" stroke-width="6" stroke-dasharray="38 62"/>
+                <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#22c55e" stroke-width="6" stroke-dasharray="24 76" stroke-dashoffset="-38"/>
+                <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#f59e0b" stroke-width="6" stroke-dasharray="18 82" stroke-dashoffset="-62"/>
+                <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="#a855f7" stroke-width="6" stroke-dasharray="20 80" stroke-dashoffset="-80"/>
+              </svg><div class="donut-center"><b>342</b><span>Projects</span></div></div>
+              <ul class="legend-list">
+                <li><span class="lbl"><i style="background:#2563eb;"></i>In Progress</span><b>38%</b></li>
+                <li><span class="lbl"><i style="background:#22c55e;"></i>Prototype</span><b>24%</b></li>
+                <li><span class="lbl"><i style="background:#f59e0b;"></i>Pilot Testing</span><b>18%</b></li>
+                <li><span class="lbl"><i style="background:#a855f7;"></i>Deployed</span><b>20%</b></li>
+              </ul>
+            </div>
+          </div>
+          <div class="panel"><div class="panel-head"><h3>Impact Trend</h3></div>
+            <svg width="100%" height="120" viewBox="0 0 240 120" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#1e7e34" stroke-width="2.5" points="0,95 40,88 80,80 120,68 160,55 200,35 240,10"/>
+              <polygon fill="url(#g2)" points="0,95 40,88 80,80 120,68 160,55 200,35 240,10 240,120 0,120"/>
+              <defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e7e34" stop-opacity=".25"/><stop offset="100%" stop-color="#1e7e34" stop-opacity="0"/></linearGradient></defs>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script>
+  // ===== REAL HEATMAPS — Leaflet.js + OpenStreetMap tiles (100% free, no API key) =====
+  const JHARKHAND_CENTER = [23.6102, 85.2799];
+
+  const JHARKHAND_DISTRICTS = [
+    {name:"Ranchi",        lat:23.3441, lng:85.3096, challenges:320, projects:48, level:"High"},
+    {name:"Jamshedpur",    lat:22.8046, lng:86.2029, challenges:210, projects:34, level:"High"},
+    {name:"Dhanbad",       lat:23.7957, lng:86.4304, challenges:180, projects:29, level:"Medium"},
+    {name:"Bokaro",        lat:23.6693, lng:86.1511, challenges:140, projects:21, level:"Medium"},
+    {name:"Hazaribagh",    lat:23.9925, lng:85.3616, challenges:95,  projects:14, level:"Medium"},
+    {name:"Deoghar",       lat:24.4823, lng:86.6961, challenges:80,  projects:11, level:"Low"},
+    {name:"Giridih",       lat:24.1913, lng:86.3079, challenges:60,  projects:9,  level:"Low"},
+    {name:"Ramgarh",       lat:23.6307, lng:85.5121, challenges:55,  projects:8,  level:"Low"},
+    {name:"Dumka",         lat:24.2676, lng:87.2497, challenges:40,  projects:6,  level:"Low"},
+    {name:"Chaibasa",      lat:22.5540, lng:85.8078, challenges:35,  projects:5,  level:"Low"},
+  ];
+
+  function levelColor(level){ return level==="High" ? "#ef4444" : level==="Medium" ? "#f59e0b" : "#22c55e"; }
+
+  function paintDistrictMarkers(map, districts, radiusScale){
+    districts.forEach(d=>{
+      L.circleMarker([d.lat, d.lng], {
+        radius: Math.max(6, Math.sqrt(d.challenges) * radiusScale),
+        color:"#fff", weight:1.5, fillColor: levelColor(d.level), fillOpacity:0.75
+      }).addTo(map).bindPopup(
+        `<b>${d.name}</b><br>Challenges: <b>${d.challenges}</b><br>Active Projects: <b>${d.projects}</b>`
+      );
+    });
+  }
+
+  function tileLayer(){
+    return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+  }
+
+  // ---- Home page map: India, zoomed to Jharkhand ----
+  let lpMap = null;
+  function initLandingHeatmap(){
+    if(lpMap || !document.getElementById('lpHeatmapMap')) return;
+    lpMap = L.map('lpHeatmapMap', {scrollWheelZoom:false}).setView(JHARKHAND_CENTER, 6);
+    tileLayer().addTo(lpMap);
+    const heatPoints = JHARKHAND_DISTRICTS.map(d => [d.lat, d.lng, d.challenges / 320]);
+    L.heatLayer(heatPoints, {radius:38, blur:28, maxZoom:8}).addTo(lpMap);
+    paintDistrictMarkers(lpMap, JHARKHAND_DISTRICTS, 0.6);
+    setTimeout(()=> lpMap.invalidateSize(), 200);
+  }
+  document.addEventListener('DOMContentLoaded', initLandingHeatmap);
+
+  // ---- In-app dashboard map: Jharkhand district heatmap (shown to every logged-in role) ----
+  let appMap = null;
+  function initAppHeatmap(){
+    if(appMap || !document.getElementById('appHeatmapMap')) return;
+    appMap = L.map('appHeatmapMap', {scrollWheelZoom:false, zoomControl:false}).setView(JHARKHAND_CENTER, 6.6);
+    tileLayer().addTo(appMap);
+    const heatPoints = JHARKHAND_DISTRICTS.map(d => [d.lat, d.lng, d.challenges / 320]);
+    L.heatLayer(heatPoints, {radius:32, blur:24, maxZoom:8}).addTo(appMap);
+    paintDistrictMarkers(appMap, JHARKHAND_DISTRICTS, 0.45);
+    setTimeout(()=> appMap.invalidateSize(), 200);
+  }
+</script>
+
+<script>
+
+  const roles = {
+    citizen:{
+      name:"Rahul Kumar", role:"Citizen", avatar:"https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=faces",
+      dashTitle:"Welcome back, Rahul", dashSub:"Track the problems you've reported and see how your community is being helped.",
+      banner:"You're viewing SICP as a <b>Citizen</b>. Report problems in your community and track their progress.",
+      footerBtn:'<i class="fa-solid fa-plus"></i>Submit a Challenge',
+      heroTitle:'Your Problem. Our Collective <span>Innovation.</span>',
+      heroSub:"Report real issues from your community and get them solved by universities and industry partners.",
+      heroBtnText:"Report a Problem",
+      nav:[
+        {icon:"fa-solid fa-house",label:"Dashboard",target:"dashboard"},
+        {icon:"fa-solid fa-circle-plus",label:"Report a Problem",target:"submit"},
+        {icon:"fa-solid fa-flag",label:"My Challenges",target:"challenges"},
+        {icon:"fa-solid fa-graduation-cap",label:"Universities",target:"universities"},
+        {icon:"fa-regular fa-folder",label:"Projects Near Me",target:"projects"},
+        {icon:"fa-regular fa-bell",label:"Notifications",target:"dashboard"},
+        {icon:"fa-regular fa-circle-question",label:"Help & Support",target:"dashboard"},
+      ],
+      stats:[
+        {label:"Problems Reported",value:"6",delta:"2 resolved",icon:"fa-solid fa-flag",cls:"ic-green"},
+        {label:"Under Review",value:"2",delta:"awaiting evaluation",icon:"fa-regular fa-clock",cls:"ic-orange"},
+        {label:"Assigned to Institutions",value:"3",delta:"in progress",icon:"fa-solid fa-graduation-cap",cls:"ic-blue"},
+        {label:"Solutions Deployed",value:"1",delta:"benefiting your area",icon:"fa-solid fa-heart",cls:"ic-heart"},
+      ]
+    },
+    university:{
+      name:"Prof. Meera Rao", role:"HEI Coordinator", avatar:"https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop&crop=faces",
+      dashTitle:"Welcome back, Prof. Meera", dashSub:"Review assigned challenges, manage your teams, and submit solution proposals.",
+      banner:"You're viewing SICP as a <b>University / HEI</b>. Evaluate challenges, form teams, and manage research projects.",
+      footerBtn:'<i class="fa-solid fa-users"></i>Form Project Team',
+      heroTitle:'Real Problems. Real Research. <span>Real Impact.</span>',
+      heroSub:"Turn assigned societal challenges into multidisciplinary research and deployable innovation.",
+      heroBtnText:"Review Assigned Challenges",
+      nav:[
+        {icon:"fa-solid fa-house",label:"Dashboard",target:"dashboard"},
+        {icon:"fa-solid fa-flag",label:"Assigned Challenges",target:"challenges"},
+        {icon:"fa-regular fa-folder",label:"My Projects",target:"projects"},
+        {icon:"fa-solid fa-user-group",label:"Faculty & Student Teams",target:"universities"},
+        {icon:"fa-solid fa-building",label:"Industry Partners",target:"industry"},
+        {icon:"fa-solid fa-chart-column",label:"Reports",target:"analytics"},
+        {icon:"fa-regular fa-circle-question",label:"Help & Support",target:"dashboard"},
+      ],
+      stats:[
+        {label:"Assigned Challenges",value:"18",delta:"3 new this week",icon:"fa-solid fa-flag",cls:"ic-green"},
+        {label:"Active Projects",value:"9",delta:"+2 from last month",icon:"fa-regular fa-folder",cls:"ic-blue"},
+        {label:"Student & Faculty Teams",value:"14",delta:"across 6 departments",icon:"fa-solid fa-user-group",cls:"ic-purple"},
+        {label:"Industry Collaborations",value:"5",delta:"active mentorships",icon:"fa-solid fa-handshake",cls:"ic-orange"},
+      ]
+    },
+    industry:{
+      name:"Vikram Singh", role:"CSR / Partner", avatar:"https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=100&h=100&fit=crop&crop=faces",
+      dashTitle:"Welcome back, Vikram", dashSub:"Discover projects to mentor, fund, or co-develop with universities.",
+      banner:"You're viewing SICP as an <b>Industry / Startup / CSR</b> partner. Fund, mentor, and co-develop deployable solutions.",
+      footerBtn:'<i class="fa-solid fa-hand-holding-heart"></i>Offer Support',
+      heroTitle:'Back the Ideas Building <span>Better Jharkhand.</span>',
+      heroSub:"Mentor, fund, or co-develop university-backed solutions ready for prototyping and deployment.",
+      heroBtnText:"Browse Opportunities",
+      nav:[
+        {icon:"fa-solid fa-house",label:"Dashboard",target:"dashboard"},
+        {icon:"fa-solid fa-flag",label:"Open Opportunities",target:"challenges"},
+        {icon:"fa-regular fa-folder",label:"Supported Projects",target:"projects"},
+        {icon:"fa-solid fa-graduation-cap",label:"University Directory",target:"universities"},
+        {icon:"fa-solid fa-heart-circle-plus",label:"CSR Hub",target:"industry"},
+        {icon:"fa-solid fa-chart-column",label:"Impact Reports",target:"analytics"},
+        {icon:"fa-regular fa-circle-question",label:"Help & Support",target:"dashboard"},
+      ],
+      stats:[
+        {label:"Opportunities Available",value:"46",delta:"open for support",icon:"fa-solid fa-flag",cls:"ic-green"},
+        {label:"Projects Supported",value:"11",delta:"funding + mentorship",icon:"fa-regular fa-folder",cls:"ic-blue"},
+        {label:"Funding Committed",value:"₹1.8Cr",delta:"this fiscal year",icon:"fa-solid fa-indian-rupee-sign",cls:"ic-orange"},
+        {label:"Mentors Engaged",value:"22",delta:"across universities",icon:"fa-solid fa-user-group",cls:"ic-purple"},
+      ]
+    },
+    admin:{
+      name:"Dr. Anjali Sinha", role:"State Admin", avatar:"https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop&crop=faces",
+      dashTitle:"Welcome back, Dr. Sinha", dashSub:"Monitor challenges, institutional participation, and social outcomes across Jharkhand.",
+      banner:"You're viewing SICP as a <b>Government Admin</b>. Monitor the full ecosystem and generate department-wide reports.",
+      footerBtn:'<i class="fa-solid fa-file-export"></i>Generate Report',
+      heroTitle:'Turning Community Challenges into <span>Sustainable Solutions</span>',
+      heroSub:"A unified ecosystem connecting citizens, universities, industry partners & government to solve real-world problems through innovation and collaboration.",
+      heroBtnText:"View Full Analytics",
+      nav:[
+        {icon:"fa-solid fa-house",label:"Dashboard",target:"dashboard"},
+        {icon:"fa-solid fa-flag",label:"Challenges",target:"challenges"},
+        {icon:"fa-regular fa-map",label:"Map View",target:"dashboard"},
+        {icon:"fa-solid fa-graduation-cap",label:"Universities",target:"universities"},
+        {icon:"fa-solid fa-building",label:"Industries & Partners",target:"industry"},
+        {icon:"fa-regular fa-folder",label:"Projects",target:"projects"},
+        {icon:"fa-solid fa-chart-column",label:"Reports & Analytics",target:"analytics"},
+        {icon:"fa-solid fa-gear",label:"Settings",target:"dashboard"},
+      ],
+      stats:[
+        {label:"Total Challenges",value:"2,784",delta:"+12% from last month",icon:"fa-solid fa-flag",cls:"ic-green"},
+        {label:"Active Projects",value:"342",delta:"+18% from last month",icon:"fa-regular fa-folder",cls:"ic-blue"},
+        {label:"Universities",value:"54",delta:"+6 this month",icon:"fa-solid fa-graduation-cap",cls:"ic-orange"},
+        {label:"Industry Partners",value:"128",delta:"+9 this month",icon:"fa-solid fa-user-group",cls:"ic-purple"},
+        {label:"Lives Impacted",value:"1.2M+",delta:"Across Jharkhand",icon:"fa-solid fa-heart",cls:"ic-heart"},
+      ]
+    }
+  };
+
+  function iconWrap(icon,cls){return icon;}
+
+  function setRole(roleKey){
+    const r = roles[roleKey];
+    document.getElementById('userName').textContent = r.name;
+    document.getElementById('userRole').textContent = r.role;
+    document.getElementById('userAvatar').src = r.avatar;
+    document.getElementById('dashTitle').textContent = r.dashTitle;
+    document.getElementById('dashSub').textContent = r.dashSub;
+    document.getElementById('roleBannerText').innerHTML = r.banner;
+    document.getElementById('footerBtn').innerHTML = r.footerBtn;
+    document.getElementById('roleSelect').value = roleKey;
+    document.getElementById('heroTitle').innerHTML = r.heroTitle;
+    document.getElementById('heroSub').textContent = r.heroSub;
+    document.getElementById('heroBtn').textContent = r.heroBtnText;
+    document.getElementById('trendTitle').textContent = roleKey==='citizen' ? 'Trending Challenges Near You' : roleKey==='university' ? 'Trending Challenges You Can Solve' : roleKey==='industry' ? 'Trending Opportunities to Support' : 'Trending Challenges';
+
+    // nav
+    const nav = document.getElementById('navScroll');
+    nav.innerHTML = '<div class="nav-group-label">Menu</div>' + r.nav.map((n,i)=>
+      `<div class="nav-item ${i===0?'active':''}" onclick="navClick(this,'${n.target}')"><i class="${n.icon}"></i>${n.label}</div>`
+    ).join('');
+
+    // stats
+    const statsRow = document.getElementById('statsRow');
+    statsRow.innerHTML = r.stats.map(s=>`
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">${s.label}</span><div class="stat-icon ${s.cls}"><i class="${s.icon}"></i></div></div>
+        <div class="stat-value">${s.value}</div>
+        <div class="stat-delta ${s.delta.includes('+')?'up':''}">${s.delta}</div>
+      </div>`).join('');
+
+    // role-only panels
+    document.querySelectorAll('.role-only').forEach(el=>{
+      el.style.display = (el.dataset.role === roleKey) ? '' : 'none';
+    });
+
+    showSection('dashboard');
+  }
+
+  function heroBtnAction(){
+    const k = document.getElementById('roleSelect').value;
+    const map = {citizen:'submit', university:'challenges', industry:'challenges', admin:'analytics'};
+    showSection(map[k] || 'dashboard');
+  }
+
+  function navClick(el, target){
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    el.classList.add('active');
+    showSection(target);
+    if(window.innerWidth<=860) toggleSidebar(false);
+  }
+
+  function showSection(name){
+    document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
+    const el = document.getElementById('sec-'+name);
+    if(el) el.classList.add('active');
+    if(name === 'dashboard' && appMap) setTimeout(()=> appMap.invalidateSize(), 50);
+  }
+
+  document.getElementById('footerBtn').addEventListener('click', ()=> showSection('submit'));
+
+  const menuBtn = document.getElementById('menuBtn');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  function toggleSidebar(open){ sidebar.classList.toggle('open', open); overlay.classList.toggle('show', open); }
+  menuBtn.addEventListener('click', ()=> toggleSidebar(true));
+  overlay.addEventListener('click', ()=> toggleSidebar(false));
+
+  // ===== Landing / fake-signup navigation =====
+  function scrollToId(id){ document.getElementById(id)?.scrollIntoView({behavior:'smooth'}); }
+
+  function goToSignup(){
+    document.getElementById('landingPage').style.display = 'none';
+    document.getElementById('roleGatePage').style.display = 'flex';
+    window.scrollTo(0,0);
+  }
+
+  function backToLanding(){
+    document.getElementById('roleGatePage').style.display = 'none';
+    document.getElementById('landingPage').style.display = 'flex';
+    window.scrollTo(0,0);
+  }
+
+  function selectRoleAndEnter(roleKey){
+    document.getElementById('roleGatePage').style.display = 'none';
+    document.getElementById('appRoot').style.display = 'flex';
+    setRole(roleKey);
+    window.scrollTo(0,0);
+    setTimeout(initAppHeatmap, 100);
+  }
+
+  // App starts on the public landing page — no login required to browse it.
+</script>
+</body>
+</html>
